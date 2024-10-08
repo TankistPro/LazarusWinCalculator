@@ -34,12 +34,14 @@ type
     BCButton9: TBCButton;
     InputForm: TEdit;
     InputExpression: TEdit;
+    procedure AddPoint(Sender: TObject);
     procedure ClearCalculator(Sender: TObject);
     procedure ExpressOperation(Sender: TObject);
     procedure ExpressResult(Sender: TObject);
     procedure InputFormChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure InputNumber(Sender: TObject);
+    procedure TransformSign(Sender: TObject);
   private
 
   public
@@ -48,16 +50,15 @@ type
 
 var
   Form1: TForm1;
-
+  isReasultValue: boolean;
 implementation
-
 {$R *.lfm}
 
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-
+    isReasultValue := False;
 end;
 
 procedure TForm1.InputFormChange(Sender: TObject);
@@ -69,20 +70,33 @@ procedure TForm1.ClearCalculator(Sender: TObject);
 begin
    InputForm.Text := '0';
    InputExpression.Text := '';
+   isReasultValue := False;
+end;
+
+procedure TForm1.AddPoint(Sender: TObject);
+begin
+    if Not(pos('.', InputForm.Text) = 0) then Exit();
+
+    InputForm.Text := InputForm.Text + '.';
 end;
 
 procedure TForm1.ExpressOperation(Sender: TObject);
 var
   operation: String;
 begin
-   operation := (Sender as TBCButton).Caption;
+     operation := (Sender as TBCButton).Caption;
+     if operation = 'x' then operation := '*'
+        else if operation = '÷' then operation := '/';
 
-   if operation = 'x' then operation := '*'
-   else if operation = '÷' then operation := '/';
+     if(isReasultValue = True) then begin
+        InputExpression.Text := InputForm.Text + operation;;
+        isReasultValue := False;
+     end
+     else begin
+       InputExpression.Text := InputExpression.Text + InputForm.Text + operation;
+     end;
 
-  InputExpression.Text := InputExpression.Text + InputForm.Text + operation;
-
-  InputForm.Text := '0';
+    InputForm.Text := '0';
 end;
 
 procedure TForm1.ExpressResult(Sender: TObject);
@@ -91,18 +105,20 @@ var
   resultValue: Double;
   parserResult: TFPExpressionResult;
 begin
-   FParser := TFpExpressionParser.Create(nil);
-   try
-      //InputForm.Text := InputExpression.Text
-      FParser.Expression := (InputExpression.Text + InputForm.Text);
-      parserResult := FParser.Evaluate;
-      resultValue := ArgToFloat(parserResult);
+     if(isReasultValue = True) then Exit();
 
-      InputExpression.Text := InputExpression.Text + InputForm.Text + (Sender as TBCButton).Caption;
-      InputForm.Text := FloatToStr(resultValue);
-   finally
-     FParser.Free;
-   end;
+     isReasultValue := True;
+     FParser := TFpExpressionParser.Create(nil);
+     try
+        FParser.Expression := (InputExpression.Text + InputForm.Text);
+        parserResult := FParser.Evaluate;
+        resultValue := ArgToFloat(parserResult);
+
+        InputExpression.Text := InputExpression.Text + InputForm.Text + (Sender as TBCButton).Caption;
+        InputForm.Text := FloatToStr(resultValue);
+     finally
+       FParser.Free;
+     end;
 
 end;
 
@@ -111,6 +127,16 @@ begin
   if InputForm.Text = '0' then
      InputForm.Text := (Sender as TBCButton).Caption
   else InputForm.Text := InputForm.Text + (Sender as TBCButton).Caption;
+end;
+
+procedure TForm1.TransformSign(Sender: TObject);
+var
+  isNegativValue: Boolean;
+  NegativSignIndex: Integer;
+begin
+  isNegativValue:= Not(pos('-', InputForm.Text) = 0);
+
+  if (Not(isNegativValue)) then InputForm.Text := '-' + InputForm.Text;
 end;
 
 end.
